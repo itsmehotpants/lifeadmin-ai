@@ -1,0 +1,25 @@
+{
+  "name": "lifeadmin-ai",
+  "version": "1.0.0",
+  "private": true,
+  "description": "LifeAdmin AI — The operating system for your personal life",
+  "workspaces": [
+    "apps/*",
+    "backend",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:web": "npm run dev --workspace=apps/web",
+    "dev:backend": "npm run dev --workspace=backend",
+    "build:web": "npm run build --workspace=apps/web",
+    "build:backend": "npm run build --workspace=backend",
+    "db:migrate": "npm run db:migrate --workspace=backend",
+    "db:generate": "npm run db:generate --workspace=backend",
+    "db:studio": "npm run db:studio --workspace=backend",
+    "lint": "npm run lint --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

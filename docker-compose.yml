@@ -1,0 +1,78 @@
+version: '3.8'
+
+services:
+  # Database Service
+  postgres:
+    image: postgres:15-alpine
+    container_name: lifeadmin-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: lifeadmin_user
+      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: lifeadmin
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lifeadmin_user -d lifeadmin"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Redis Service for BullMQ
+  redis:
+    image: redis:7-alpine
+    container_name: lifeadmin-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Backend API
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: lifeadmin-api
+    restart: on-failure
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+      - DATABASE_URL=postgresql://lifeadmin_user:password123@postgres:5432/lifeadmin?schema=public
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=super_secret_local_key_for_testing
+    ports:
+      - "3001:3001"
+    command: >
+      sh -c "cd /app/backend && npx prisma migrate deploy && npx prisma db seed && npm run dev"
+
+  # Web Frontend
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: lifeadmin-web
+    restart: on-failure
+    depends_on:
+      - api
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:3001/api
+    ports:
+      - "3000:3000"
+
+volumes:
+  postgres_data:
+  redis_data:
