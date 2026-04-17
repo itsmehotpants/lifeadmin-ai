@@ -6,8 +6,9 @@ import { getGreeting, formatCurrency, formatRelativeTime } from "@/lib/utils";
 import {
   CheckSquare, Clock, AlertTriangle, CalendarDays,
   TrendingUp, CreditCard, Bell, Sparkles, ChevronRight,
-  Plus, ArrowUpRight, Flame,
+  Plus, ArrowUpRight, Flame, Brain, Loader2, Send
 } from "lucide-react";
+import api from "@/lib/api";
 
 export default function DashboardPage() {
   const user = useAuthStore((s) => s.user);
@@ -74,6 +75,8 @@ export default function DashboardPage() {
           Add Task
         </button>
       </div>
+
+      <AITaskInputBar />
 
       {/* ─── STATS CARDS ─── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -260,4 +263,68 @@ function DisciplineScoreCard({ score }: { score: number }) {
       </div>
     </div>
   );
+}
+
+function AITaskInputBar() {
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [successMsg, setSuccessMsg] = useState("");
+
+  const handleParse = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim() || loading) return;
+    setLoading(true);
+    setSuccessMsg("");
+    try {
+      // 1. Ask Gemini to extract attributes
+      const { data } = await api.post("/ai/parse-task", { input });
+      const parsedTask = data.data;
+
+      // 2. Submit to actual Task schema
+      await api.post("/tasks", parsedTask);
+      
+      setSuccessMsg(`Created: ${parsedTask.title}`);
+      setInput("");
+      setTimeout(() => setSuccessMsg(""), 3000);
+    } catch (err) {
+      console.error(err);
+      setSuccessMsg("Error: Failed to parse or create.");
+      setTimeout(() => setSuccessMsg(""), 3000);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleParse} className="relative w-full shadow-lg rounded-2xl flex items-center p-1.5"
+      style={{ background: "var(--bg-elevated)", border: "1px solid var(--border)" }}>
+      <div className="pl-4 pr-2 flex items-center justify-center">
+         <Sparkles className="w-5 h-5" style={{ color: "var(--accent-primary)" }} />
+      </div>
+      <input
+        type="text"
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        placeholder="Type to create a task via AI... (e.g., Remind me to pay rent next Tuesday)"
+        className="flex-1 px-2 py-3 bg-transparent text-sm w-full outline-none"
+        style={{ color: "var(--text-primary)" }}
+        disabled={loading}
+      />
+      
+      {successMsg && (
+        <span className="text-xs mr-3 font-semibold shine-text" style={{ color: "var(--accent-success)" }}>
+          {successMsg}
+        </span>
+      )}
+      
+      <button 
+        type="submit" 
+        disabled={loading || !input.trim()}
+        className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-all hover:scale-105 disabled:opacity-50"
+        style={{ background: "var(--gradient-primary)", color: "white" }}
+      >
+        {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+      </button>
+    </form>
+  )
 }
