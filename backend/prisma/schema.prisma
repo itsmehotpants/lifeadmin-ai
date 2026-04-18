@@ -148,9 +148,11 @@ model Task {
   tags              String[]
   reminderMinutes   Int[]
   snoozedUntil      DateTime?
+  familyId          String?
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
   user              User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  family            Family?      @relation(fields: [familyId], references: [id])
   reminders         Reminder[]
   parentTask        Task?        @relation("TaskRecurrence", fields: [parentTaskId], references: [id])
   childTasks        Task[]       @relation("TaskRecurrence")
@@ -177,9 +179,11 @@ model Habit {
   color            String       @default("#6366f1")
   icon             String       @default("🎯")
   reminderTime     String?
+  familyId         String?
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
   user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  family           Family?      @relation(fields: [familyId], references: [id])
   logs             HabitLog[]
 
   @@index([userId])
@@ -306,12 +310,15 @@ model BehaviorProfile {
 // ─── FAMILY SHARING ───────────────────────────────────────────
 
 model Family {
-  id        String         @id @default(cuid())
-  ownerId   String         @unique
-  name      String
-  createdAt DateTime       @default(now())
-  owner     User           @relation(fields: [ownerId], references: [id])
-  members   FamilyMember[]
+  id         String         @id @default(cuid())
+  ownerId    String         @unique
+  name       String
+  inviteCode String?        @unique
+  createdAt  DateTime       @default(now())
+  owner      User           @relation(fields: [ownerId], references: [id])
+  members    FamilyMember[]
+  tasks      Task[]
+  habits     Habit[]
 }
 
 model FamilyMember {

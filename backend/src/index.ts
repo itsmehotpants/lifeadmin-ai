@@ -15,6 +15,7 @@ import analyticsRoutes from "./routes/analytics.routes";
 import notificationsRoutes from "./routes/notifications.routes";
 import paymentsRoutes from "./routes/payments.routes";
 import aiRoutes from "./routes/ai.routes";
+import familyRoutes from "./routes/family.routes";
 
 import { initSentry, Sentry } from "./lib/sentry";
 
@@ -58,6 +59,7 @@ app.use("/api/analytics", analyticsRoutes);
 app.use("/api/notifications", notificationsRoutes);
 app.use("/api/payments", paymentsRoutes);
 app.use("/api/ai", aiRoutes);
+app.use("/api/family", familyRoutes);
 
 // ─── ERROR HANDLING ─────────────────────────────────────────
 // The Sentry error handler must be before any other error middleware and after all controllers

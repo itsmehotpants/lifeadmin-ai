@@ -7,7 +7,7 @@ import { useAuthStore } from "@/stores/auth.store";
 import {
   Brain, LayoutDashboard, CheckSquare, TrendingUp,
   CreditCard, Target, BarChart3, Settings, LogOut,
-  Bell, Search, Sparkles, Menu, X, ChevronDown,
+  Bell, Search, Sparkles, Menu, X, ChevronDown, Users,
 } from "lucide-react";
 
 const navItems = [
@@ -15,6 +15,7 @@ const navItems = [
   { href: "/dashboard/tasks", label: "Tasks", icon: CheckSquare },
   { href: "/dashboard/habits", label: "Habits", icon: Target },
   { href: "/dashboard/finance", label: "Finance", icon: CreditCard },
+  { href: "/dashboard/family", label: "Family", icon: Users },
   { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/dashboard/goals", label: "Goals", icon: TrendingUp },
   { href: "/dashboard/settings", label: "Settings", icon: Settings },

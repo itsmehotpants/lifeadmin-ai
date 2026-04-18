@@ -67,6 +67,13 @@ function TabNavigator() {
          }}
       />
       <Tab.Screen 
+         name="Family" 
+         component={FamilyScreen} 
+         options={{
+            tabBarIcon: ({color, size}) => <Users color={color} size={size} />
+         }}
+      />
+      <Tab.Screen 
          name="Settings" 
          component={SettingsScreen} 
          options={{

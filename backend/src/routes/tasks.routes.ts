@@ -1,15 +1,26 @@
 import { Router, Request, Response } from "express";
 import prisma from "../lib/prisma";
 import { authenticate } from "../middleware/auth.middleware";
+import { attachFamilyId } from "../middleware/family.middleware";
 import { requirePlan } from "../middleware/subscription.middleware";
 import { createTaskSchema, updateTaskSchema, parseTaskSchema, snoozeTaskSchema } from "./validation";
 
 const router = Router();
 
-// All task routes require authentication
+// All task routes require authentication and family context
 router.use(authenticate);
+router.use(attachFamilyId);
 
 // ─── IMPORTANT: Static routes BEFORE :id param routes ────────
+
+// Helper to get task query filter
+const getTaskFilter = (req: Request) => {
+  const filters: any[] = [{ userId: req.user!.sub }];
+  if (req.familyId) {
+    filters.push({ familyId: req.familyId });
+  }
+  return { OR: filters };
+};
 
 // GET /api/tasks/today
 router.get("/today", async (req: Request, res: Response) => {
@@ -21,7 +32,7 @@ router.get("/today", async (req: Request, res: Response) => {
 
     const tasks = await prisma.task.findMany({
       where: {
-        userId: req.user!.sub,
+        ...getTaskFilter(req),
         status: { in: ["PENDING", "IN_PROGRESS"] },
         OR: [
           { dueDate: { gte: startOfDay, lte: endOfDay } },
@@ -43,13 +54,12 @@ router.get("/overdue", async (req: Request, res: Response) => {
   try {
     const tasks = await prisma.task.findMany({
       where: {
-        userId: req.user!.sub,
+        ...getTaskFilter(req),
         status: { in: ["PENDING", "IN_PROGRESS"] },
         dueDate: { lt: new Date() },
       },
       orderBy: { dueDate: "asc" },
     });
-
     res.json({ success: true, data: tasks });
   } catch (err) {
     console.error("Get overdue tasks error:", err);
@@ -88,9 +98,12 @@ router.get("/", async (req: Request, res: Response) => {
     const limitNum = Math.min(50, Math.max(1, parseInt(limit as string)));
     const skip = (pageNum - 1) * limitNum;
 
-    const where: any = { userId: req.user!.sub };
-    if (status) where.status = status;
+    const where: any = {
+      ...getTaskFilter(req),
+    };
+
     if (category) where.category = category;
+    if (status) where.status = status;
 
     const [tasks, total] = await Promise.all([
       prisma.task.findMany({

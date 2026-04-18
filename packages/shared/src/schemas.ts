@@ -125,6 +125,16 @@ export const registerFCMTokenSchema = z.object({
   platform: z.enum(["android", "ios", "web"]),
 });
 
+// ─── FAMILY SCHEMAS ──────────────────────────────────────────
+
+export const createFamilySchema = z.object({
+  name: z.string().min(1, "Family name is required").max(100),
+});
+
+export const joinFamilySchema = z.object({
+  inviteCode: z.string().min(6, "Invalid invite code").max(10),
+});
+
 // Type exports
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
@@ -137,3 +147,5 @@ export type CreateFinancialItemInput = z.infer<typeof createFinancialItemSchema>
 export type UpdateFinancialItemInput = z.infer<typeof updateFinancialItemSchema>;
 export type CreateGoalInput = z.infer<typeof createGoalSchema>;
 export type UpdateGoalInput = z.infer<typeof updateGoalSchema>;
+export type CreateFamilyInput = z.infer<typeof createFamilySchema>;
+export type JoinFamilyInput = z.infer<typeof joinFamilySchema>;

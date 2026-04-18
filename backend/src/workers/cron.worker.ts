@@ -51,9 +51,59 @@ async function executeMidnightProcessing() {
   console.log("[Cron] Midnight processing complete");
 }
 
+import { generateWeeklyInsights } from "../services/ai.service";
+import { sendPushNotification } from "../services/fcm.service";
+
 async function executeWeeklyInsightsProcessing() {
   console.log("[Cron] Generating weekly insights... (Batch processing)");
-  // Iterate users with PREM/PRO and generate weekly insights -> trigger email/push.
+  
+  // 1. Fetch only users with PRO or PREMIUM plans who were active recently
+  const premiumUsers = await prisma.user.findMany({
+    where: {
+      subscription: {
+        plan: { in: ["PRO", "PREMIUM"] },
+        status: "active",
+      },
+    },
+    select: { id: true, email: true },
+  });
+
+  for (const user of premiumUsers) {
+    try {
+      // 2. Generate insights using Gemini
+      const insights = await generateWeeklyInsights(user.id);
+      
+      // 3. Create a notification record in DB
+      await prisma.notification.create({
+        data: {
+          userId: user.id,
+          title: "Your Weekly Life Retro is Ready",
+          message: insights[0]?.title || "We've analyzed your week. See your patterns now.",
+          type: "SYSTEM",
+          metadata: { insights },
+        },
+      });
+
+      // 4. Send push notification if token exists
+      const fcmToken = await prisma.fCMToken.findFirst({
+        where: { userId: user.id },
+        orderBy: { createdAt: "desc" },
+      });
+
+      if (fcmToken) {
+        await sendPushNotification(fcmToken.token, {
+          title: "📊 Weekly Insight Ready",
+          body: insights[0]?.title || "Check your productivity trends from last week.",
+        });
+      }
+
+      console.log(`[Cron] Insight sent to user ${user.id}`);
+    } catch (err) {
+      console.error(`[Cron] Failed to generate weekly insight for ${user.id}:`, err);
+    }
+  }
+
+  console.log(`[Cron] Weekly insights processing complete for ${premiumUsers.length} users`);
 }
 
 cronWorker.on("failed", (job, err) => {

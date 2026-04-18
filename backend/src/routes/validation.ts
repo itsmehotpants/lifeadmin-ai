@@ -18,4 +18,6 @@ export {
   updateGoalSchema,
   updateProgressSchema,
   registerFCMTokenSchema,
+  createFamilySchema,
+  joinFamilySchema,
 } from "../../packages/shared/src/schemas";

@@ -1,16 +1,27 @@
 import { Router, Request, Response } from "express";
 import prisma from "../lib/prisma";
 import { authenticate } from "../middleware/auth.middleware";
+import { attachFamilyId } from "../middleware/family.middleware";
 import { createHabitSchema, updateHabitSchema, logHabitSchema } from "./validation";
 
 const router = Router();
 router.use(authenticate);
+router.use(attachFamilyId);
+
+// Helper to get habit query filter
+const getHabitFilter = (req: Request) => {
+  const filters: any[] = [{ userId: req.user!.sub }];
+  if (req.familyId) {
+    filters.push({ familyId: req.familyId });
+  }
+  return { OR: filters };
+};
 
 // ─── GET /api/habits/today ──────────────────────────────────
 router.get("/today", async (req: Request, res: Response) => {
   try {
     const habits = await prisma.habit.findMany({
-      where: { userId: req.user!.sub, isActive: true },
+      where: { ...getHabitFilter(req), isActive: true },
       include: {
         logs: {
           where: {
@@ -114,9 +125,12 @@ router.post("/:id/log", async (req: Request, res: Response) => {
   try {
     const data = logHabitSchema.parse(req.body);
 
-    // Verify habit belongs to user
+    // Verify habit belongs to user or their family
     const habit = await prisma.habit.findFirst({
-      where: { id: req.params.id, userId: req.user!.sub },
+      where: { 
+        id: req.params.id, 
+        ...getHabitFilter(req)
+      },
     });
     if (!habit) {
       res.status(404).json({ success: false, error: "Habit not found" });
