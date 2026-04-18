@@ -7,11 +7,18 @@ import { COLORS } from '../theme';
 import { LayoutDashboard, CheckSquare, Settings } from 'lucide-react-native';
 
 import LoginScreen from '../screens/LoginScreen';
+import SignupScreen from '../screens/SignupScreen';
 import DashboardScreen from '../screens/DashboardScreen';
 import TasksScreen from '../screens/TasksScreen';
 import HabitsScreen from '../screens/HabitsScreen';
 import FinanceScreen from '../screens/FinanceScreen';
-import { Target, CreditCard } from 'lucide-react-native';
+import GoalsScreen from '../screens/GoalsScreen';
+import AnalyticsScreen from '../screens/AnalyticsScreen';
+import SettingsScreen from '../screens/SettingsScreen';
+import { Target, CreditCard, TrendingUp, BarChart3, Settings, LayoutDashboard, CheckSquare } from 'lucide-react-native';
+
+import { registerForPushNotificationsAsync } from '../lib/notifications';
+import { Platform } from 'react-native';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -24,13 +31,15 @@ function TabNavigator() {
         tabBarStyle: {
           backgroundColor: '#111118',
           borderTopColor: COLORS.border,
+          height: 60,
+          paddingBottom: 8,
         },
         tabBarActiveTintColor: COLORS.primary,
         tabBarInactiveTintColor: COLORS.textSecondary,
       }}
     >
       <Tab.Screen 
-         name="Dashboard" 
+         name="Home" 
          component={DashboardScreen} 
          options={{
             tabBarIcon: ({color, size}) => <LayoutDashboard color={color} size={size} />
@@ -57,6 +66,13 @@ function TabNavigator() {
             tabBarIcon: ({color, size}) => <CreditCard color={color} size={size} />
          }}
       />
+      <Tab.Screen 
+         name="Settings" 
+         component={SettingsScreen} 
+         options={{
+            tabBarIcon: ({color, size}) => <Settings color={color} size={size} />
+         }}
+      />
     </Tab.Navigator>
   );
 }
@@ -67,6 +83,19 @@ export default function AppNavigator() {
   useEffect(() => {
     fetchUser();
   }, []);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      registerForPushNotificationsAsync().then((token) => {
+        if (token) {
+          api.post('/notifications/fcm-token', {
+            token,
+            platform: Platform.OS.toUpperCase(),
+          }).catch(err => console.error("Error registering FCM token:", err));
+        }
+      });
+    }
+  }, [isAuthenticated]);
 
   if (isLoading) {
     return (
@@ -79,9 +108,16 @@ export default function AppNavigator() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       {!isAuthenticated ? (
-        <Stack.Screen name="Login" component={LoginScreen} />
+        <>
+          <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="Signup" component={SignupScreen} />
+        </>
       ) : (
-        <Stack.Screen name="Main" component={TabNavigator} />
+        <>
+          <Stack.Screen name="Main" component={TabNavigator} />
+          <Stack.Screen name="Goals" component={GoalsScreen} />
+          <Stack.Screen name="Analytics" component={AnalyticsScreen} />
+        </>
       )}
     </Stack.Navigator>
   );
