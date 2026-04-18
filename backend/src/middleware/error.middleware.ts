@@ -1,6 +1,4 @@
-import { Request, Response, NextFunction } from "express";
-import { ZodError } from "zod";
-import { Prisma } from "@prisma/client";
+import { Sentry } from "../lib/sentry";
 
 /**
  * Centralized error handling middleware
@@ -13,6 +11,11 @@ export const errorHandler = (
   next: NextFunction
 ): void => {
   console.error(`[ERROR] ${req.method} ${req.path}:`, err.message);
+
+  // Capture only non-client errors in Sentry (optional preference)
+  if (!(err instanceof ZodError) && (err as any).statusCode !== 401 && (err as any).statusCode !== 403) {
+    Sentry.captureException(err);
+  }
 
   // Zod validation errors
   if (err instanceof ZodError) {

@@ -17,23 +17,15 @@ const cronWorker = new Worker(
   { connection: redisConnection }
 );
 
+import { syncUserBehaviorProfile } from "../services/behavior.service";
+
 /**
  * Runs daily to re-calculate streaks and consequences
  */
 async function executeMidnightProcessing() {
   console.log("[Cron] Executing midnight processing...");
 
-  // Example: Reset completedToday flag on habits
-  // Find all habits that were NOT logged today and break their streak
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  yesterday.setHours(0, 0, 0, 0);
-
-  const startOfYesterday = new Date(yesterday);
-  const endOfYesterday = new Date(yesterday);
-  endOfYesterday.setHours(23, 59, 59, 999);
-
-  // Mark pending past-due tasks as OVERDUE
+  // 1. Mark pending past-due tasks as OVERDUE
   await prisma.task.updateMany({
     where: {
       status: "PENDING",
@@ -41,6 +33,20 @@ async function executeMidnightProcessing() {
     },
     data: { status: "OVERDUE" }
   });
+
+  // 2. Break habit streaks for missed entries
+  // (In a full impl, we'd find habits with lastLog < twoDaysAgo and reset currentStreak)
+
+  // 3. Sync User Behavior Profiles (Discipline Score, Peak Hour, etc)
+  const users = await prisma.user.findMany({ select: { id: true } });
+  
+  for (const user of users) {
+    try {
+      await syncUserBehaviorProfile(user.id);
+    } catch (err) {
+      console.error(`[Cron] Failed behavior sync for user ${user.id}:`, err);
+    }
+  }
 
   console.log("[Cron] Midnight processing complete");
 }

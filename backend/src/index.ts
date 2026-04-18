@@ -16,10 +16,17 @@ import notificationsRoutes from "./routes/notifications.routes";
 import paymentsRoutes from "./routes/payments.routes";
 import aiRoutes from "./routes/ai.routes";
 
+import { initSentry, Sentry } from "./lib/sentry";
+
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Initialize Sentry Monitoring
+initSentry();
+
 // ─── GLOBAL MIDDLEWARE ──────────────────────────────────────
+// The request handler must be the first middleware on the app
+app.use(Sentry.Handlers.requestHandler());
 app.use(helmet());
 app.use(cors({
   origin: process.env.FRONTEND_URL || "http://localhost:3000",
@@ -53,6 +60,9 @@ app.use("/api/payments", paymentsRoutes);
 app.use("/api/ai", aiRoutes);
 
 // ─── ERROR HANDLING ─────────────────────────────────────────
+// The Sentry error handler must be before any other error middleware and after all controllers
+app.use(Sentry.Handlers.errorHandler());
+
 app.use(notFoundHandler);
 app.use(errorHandler);
 
